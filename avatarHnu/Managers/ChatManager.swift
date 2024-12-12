@@ -13,7 +13,7 @@ final class ChatManager: ObservableObject {
     private init() {} // Private initializer to ensure the singleton pattern
     
     func sendText(_ text: String) async -> String {
-        guard !text.isEmpty else { return "Input text cannot be empty." }
+        guard !text.isEmpty else { return "Hey, the text box is lonely! Fill it up." }
         
         let url = URL(string: "https://api.openai.com/v1/chat/completions")! // Correct endpoint
         var request = URLRequest(url: url)

@@ -13,7 +13,7 @@ final class Conversation: ObservableObject {
         let answer: String
     }
     enum State { case idle, listening, asking }
-    static let initPrompt = "(listening...)"
+    static let initPrompt = "..."
     static let initAnswer = "(thinking...)"
     @Published var prompt = ""      // input text
     @Published var question = ""

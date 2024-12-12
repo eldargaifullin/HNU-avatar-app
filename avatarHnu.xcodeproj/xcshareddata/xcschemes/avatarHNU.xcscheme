@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "BAA730A029A07289000AC482"
-               BuildableName = "heychatgpt.app"
-               BlueprintName = "heychatgpt"
-               ReferencedContainer = "container:heychatgpt.xcodeproj">
+               BuildableName = "avatarHnu.app"
+               BlueprintName = "avatarHnu"
+               ReferencedContainer = "container:avatarHnu.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -50,15 +50,6 @@
             ReferencedContainer = "container:avatarHnu.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "BAA730A029A07289000AC482"
-            BuildableName = "heychatgpt.app"
-            BlueprintName = "heychatgpt"
-            ReferencedContainer = "container:heychatgpt.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -66,23 +57,13 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "BAA730A029A07289000AC482"
-            BuildableName = "heychatgpt.app"
-            BlueprintName = "heychatgpt"
-            ReferencedContainer = "container:heychatgpt.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "BAA730A029A07289000AC482"
-            BuildableName = "heychatgpt.app"
-            BlueprintName = "heychatgpt"
-            ReferencedContainer = "container:heychatgpt.xcodeproj">
+            BuildableName = "avatarHnu.app"
+            BlueprintName = "avatarHnu"
+            ReferencedContainer = "container:avatarHnu.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </ProfileAction>
