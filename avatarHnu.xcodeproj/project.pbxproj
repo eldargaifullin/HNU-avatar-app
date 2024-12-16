@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -20,6 +20,8 @@
 		BAB095D629A0CC15002A148E /* OpenAISwift in Frameworks */ = {isa = PBXBuildFile; productRef = BAB095D529A0CC15002A148E /* OpenAISwift */; };
 		F442E52E2CED575F006A32C7 /* APIKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F442E52D2CED5757006A32C7 /* APIKey.swift */; };
 		F4A2519F2D0AED4F0006D46F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BAA730A829A0728A000AC482 /* Assets.xcassets */; };
+		F4A251A32D0F82270006D46F /* RAGHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A251A22D0F82110006D46F /* RAGHandler.swift */; };
+		F4A251A82D0F834C0006D46F /* ChromaDB.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A251A72D0F834C0006D46F /* ChromaDB.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,7 +40,13 @@
 		BAB095D029A0C552002A148E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BAB095D229A0C71E002A148E /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		F442E52D2CED5757006A32C7 /* APIKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKey.swift; sourceTree = "<group>"; };
+		F4A251A22D0F82110006D46F /* RAGHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGHandler.swift; sourceTree = "<group>"; };
+		F4A251A72D0F834C0006D46F /* ChromaDB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChromaDB.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		F4A251A42D0F826C0006D46F /* content */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = content; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		BAA7309E29A07289000AC482 /* Frameworks */ = {
@@ -72,6 +80,7 @@
 		BAA730A329A07289000AC482 /* avatarHnu */ = {
 			isa = PBXGroup;
 			children = (
+				F4A251A42D0F826C0006D46F /* content */,
 				BAB095D029A0C552002A148E /* Info.plist */,
 				BAA730BA29A08145000AC482 /* App */,
 				BAA730B929A08136000AC482 /* Views */,
@@ -114,9 +123,11 @@
 		BAA730BB29A08154000AC482 /* Managers */ = {
 			isa = PBXGroup;
 			children = (
+				F4A251A22D0F82110006D46F /* RAGHandler.swift */,
 				BAA730B529A07604000AC482 /* ChatManager.swift */,
 				BAB095CB29A0A14B002A148E /* Synthesizer.swift */,
 				BAB095CD29A0B2CB002A148E /* SpeechRecognizer.swift */,
+				F4A251A72D0F834C0006D46F /* ChromaDB.swift */,
 			);
 			path = Managers;
 			sourceTree = "<group>";
@@ -152,6 +163,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F4A251A42D0F826C0006D46F /* content */,
 			);
 			name = avatarHnu;
 			packageProductDependencies = (
@@ -236,9 +250,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				BAB095CC29A0A14B002A148E /* Synthesizer.swift in Sources */,
+				F4A251A82D0F834C0006D46F /* ChromaDB.swift in Sources */,
 				BAB095CE29A0B2CB002A148E /* SpeechRecognizer.swift in Sources */,
 				BAB095D329A0C71E002A148E /* Log.swift in Sources */,
 				BAA730B629A07604000AC482 /* ChatManager.swift in Sources */,
+				F4A251A32D0F82270006D46F /* RAGHandler.swift in Sources */,
 				F442E52E2CED575F006A32C7 /* APIKey.swift in Sources */,
 				BAA730A729A07289000AC482 /* ContentView.swift in Sources */,
 				BAA730B829A07694000AC482 /* APIKey.swift in Sources */,

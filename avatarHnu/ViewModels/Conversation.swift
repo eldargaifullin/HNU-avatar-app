@@ -1,8 +1,4 @@
-//
-//  Conversation.swift
-//
-//  Created by Gaifullin, Eldar on 20.11.24.
-//
+
 import Foundation
 
 @MainActor
@@ -68,3 +64,4 @@ final class Conversation: ObservableObject {
         }
     }
 }
+

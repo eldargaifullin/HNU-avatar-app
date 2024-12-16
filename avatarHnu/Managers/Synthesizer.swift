@@ -1,6 +1,6 @@
 //
 //  Synthesizer.swift
-//
+//  Speech synthesizer: converts text response into speech
 //  Created by Gaifullin, Eldar on 20.11.24.
 //
 

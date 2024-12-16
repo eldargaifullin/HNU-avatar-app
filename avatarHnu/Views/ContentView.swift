@@ -43,7 +43,7 @@ struct ContentView: View {
                 Divider()
 
                 // Input area
-                HStack {
+                HStack(spacing: 16) { // Add spacing between buttons
                     TextField("Type anything here...", text: $conversation.prompt)
                         .padding()
                         .background(Color.gray.opacity(0.2))
@@ -68,21 +68,32 @@ struct ContentView: View {
                         }
                     }
 
-                    Button(action: {
-                        isListening.toggle()
-                        if isListening {
-                            conversation.startListening()
-                        } else {
-                            conversation.stopListening()
-                        }
-                    }) {
+                    // Mic button for start and stop listening
+                    ZStack {
+                        Circle()
+                            .fill(isListening ? Color.red : Color.blue)
+                            .frame(width: 44, height: 44)
+
                         Image(systemName: isListening ? "mic.fill" : "mic")
                             .resizable()
                             .frame(width: 24, height: 24)
                             .foregroundColor(.white)
-                            .padding()
-                            .background(Circle().fill(isListening ? Color.red : Color.blue))
                     }
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { _ in
+                                if !isListening {
+                                    isListening = true
+                                    conversation.startListening()
+                                }
+                            }
+                            .onEnded { _ in
+                                if isListening {
+                                    isListening = false
+                                    conversation.stopListening()
+                                }
+                            }
+                    )
                 }
                 .padding()
             }
@@ -90,6 +101,9 @@ struct ContentView: View {
         }
         .onTapGesture {
             isInputFieldFocused = false // Dismiss keyboard when tapping outside
+        }
+        .onAppear {
+            print("App Documents Directory: \(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!)")
         }
         .environmentObject(conversation)
     }

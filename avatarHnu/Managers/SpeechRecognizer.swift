@@ -1,8 +1,6 @@
 //
 //  SpeechRecognizer.swift
-//  heychatgpt
-//
-//  Created by Yasuhito Nagatomo on 2023/02/18.
+//  Recognises the speech request and converts it into text format
 //
 
 import Speech
@@ -53,10 +51,7 @@ final class SpeechRecognizer: NSObject {
 
         let audioSession = AVAudioSession.sharedInstance()
 
-        // [Note] Normally, The below settings are applied. (ex. in Apple Sample Code)
-        //          try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-        //        However this doesn't work when working with Speech Synthesizer.
-        //        Therefore alternatively use `.playAndRecord`.
+        //   try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers) - doesn't work with Speech Synthesizer.
         //        BTW, in iOS 16.3, `.playback` causes crush.
         try audioSession.setCategory(.playAndRecord, options: .mixWithOthers)
 
@@ -70,10 +65,6 @@ final class SpeechRecognizer: NSObject {
         recognitionRequest.shouldReportPartialResults = true
 
         // Keep speech recognition data on device
-        //    if #available(iOS 13, *) {
-        //        recognitionRequest.requiresOnDeviceRecognition = false
-        //    }
-
         // Create a recognition task for the speech recognition session.
         // Keep a reference to the task so that it can be canceled.
         recognitionTask = recognizer.recognitionTask(with: recognitionRequest) { result, error in
