@@ -1,99 +1,103 @@
 import Foundation
+import PDFKit  // Если речь идет о PDF-документе
 
-final class ChatManager: ObservableObject {
+
+// ChatManager: Handles the chatbot loop and RAG-based responses
+final class ChatManager {
     @Published var responseText: String = ""
-
-    // Singleton instance
     static let shared = ChatManager()
+    
+    // Конфигурация модели GPT
+    let temperature = 0.8
+    let max_tokens = 4000
+    
+    // Размер чанков и перекрытия для разбиения текста
+    private let chunkSize: Int = 4000
+    private let chunkOverlap: Int = 1600
 
-    // Use the key from OpenAIAPIKey enum
-    private let apiKey = OpenAIAPIKey.key
-    private let customModelID = "ft:gpt-4o-2024-08-06:hnu:politics-religion-filter:AJQK71Bv" // Replace with your desired model
-
-    // RAG configuration parameters
     private let ragEnabled = true
-    private let ragHandler = RAGHandler()  // Instance of RAGHandler
-    private let systemPrompt = """
-    You are a student advisor bot for Hochschule Neu-Ulm (HNU).
-    Always respond only in English, regardless of the content or language of the documents. If documents contain German text, translate or paraphrase them into English.
+    
+    let systemPrompt: String = """
+    You are a student advisor at the HNU (Hochschule Neu-Ulm) and want to help new students with orientation at the university.
+    Always respond only in English, regardless of the content or language of the documents.
+    If you don't know the answer, or don't have relevant information, say shortly, avoid long explanations in such cases.
     """
+    
+    var ragHandler: RAGHandler
+    var chatOpenAI: ChatOpenAI
+    private var lastResponse: String = ""
+    
 
-    private init() {
+    init() {
+        self.ragHandler = RAGHandler(chunkSize: chunkSize, chunkOverlap: chunkOverlap)
+        self.chatOpenAI = ChatOpenAI(apiKey: OpenAIAPIKey.key)
+
         if ragEnabled {
-            ragHandler.loadAndProcessPDFs()  // Load and process PDFs when RAG is enabled
+            let pdfDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+                .first!.appendingPathComponent("hnu_documents").path
+            ragHandler.loadPdfsFromDirectory(directoryPath: pdfDirectory)
         }
-    } // Private initializer to ensure the singleton pattern
-
-    // Function to retrieve relevant content from the RAGHandler
-    private func retrieveRelevantContent(for query: String) async -> String {
-        guard ragEnabled else { return "" }
-
-        // Use RAGHandler to retrieve relevant documents
-        return await ragHandler.retrieveRelevantContent(for: query)
     }
 
-    func sendText(_ text: String) async -> String {
-        guard !text.isEmpty else { return "Hey, the text box is lonely! Fill it up." }
-
-        // Retrieve relevant content from the documents using RAGHandler
-        let relevantContent = await retrieveRelevantContent(for: text)
-
-        let url = URL(string: "https://api.openai.com/v1/chat/completions")! // Correct endpoint
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        // Decide context to send to the model
-        let context: String
-        if relevantContent.isEmpty {
-            context = systemPrompt + "\n\nNo relevant documents were found. Please answer based on your knowledge base."
-        } else {
-            context = systemPrompt + "\n\n" + relevantContent
+    
+    func chatbotLoop() {
+        print("Welcome to the HNU Expert Bot! Type 'exit' to quit.")
+        
+        while true {
+            print("Your question: ", terminator: "")
+            guard let userInput = readLine(), !userInput.isEmpty else { continue }
+            
+            if userInput.lowercased() == "exit" {
+                print("Goodbye!")
+                break
+            }
+            
+            if userInput.lowercased() == "repeat" {
+                print("HNU bot: \(lastResponse)")
+                continue
+            }
+            
+            let contextText = ragHandler.retrieveContext(for: userInput)
+            let finalPrompt = """
+            \(systemPrompt)
+            Use the following context: \(contextText)
+            Question: \(userInput)
+            """
+            
+            Task {
+                let response = await chatOpenAI.generateResponse(prompt: finalPrompt)
+                print("HNU bot: \(response)")
+                lastResponse = response
+            }
         }
-
-        // Update the body for the chat/completions endpoint
-        let body: [String: Any] = [
-            "model": customModelID,
-            "messages": [
-                ["role": "system", "content": context],
-                ["role": "user", "content": text]
-            ],
-            "max_tokens": 300
-        ]
-
+    }
+    
+    // Функция для загрузки PDF документов
+    func loadPdfsFromDirectory(directoryPath: String) -> [String] {
+        var textChunks = [String]()
+        let fileManager = FileManager.default
+        
         do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-            // Perform the API call
-            let (data, _) = try await URLSession.shared.data(for: request)
-
-            // Decode the response
-            let response = try JSONDecoder().decode(ChatCompletionResponse.self, from: data)
-
-            // Safely access the first choice text
-            if let choices = response.choices, let firstChoice = choices.first?.message.content {
-                return firstChoice
-            } else {
-                return "No response available."
+            let files = try fileManager.contentsOfDirectory(atPath: directoryPath)
+            for filename in files {
+                if filename.hasSuffix(".pdf") {
+                    let filePath = directoryPath + "/" + filename
+                    if let pdfDocument = PDFDocument(url: URL(fileURLWithPath: filePath)) {
+                        for pageIndex in 0..<pdfDocument.pageCount {
+                            if let page = pdfDocument.page(at: pageIndex) {
+                                if let text = page.string {
+                                    textChunks.append(text)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         } catch {
-            // Log and handle errors
-            print("Error occurred during API call: \(error.localizedDescription)")
-            return "Error: \(error.localizedDescription)"
+            print("Error reading contents of directory: \(error)")
         }
+        
+        return textChunks
     }
-}
-
-// Response structures for decoding
-struct ChatCompletionResponse: Decodable {
-    struct Choice: Decodable {
-        struct Message: Decodable {
-            let role: String
-            let content: String
-        }
-        let message: Message
-    }
-    let choices: [Choice]?
 }
 

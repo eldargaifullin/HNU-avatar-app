@@ -15,6 +15,17 @@ final class SpeechRecognizer: NSObject {
     private let audioEngine = AVAudioEngine()
     private override init() {}
 
+    func startRecording(progressHandler: @escaping (String) -> Void = {_ in }) {
+        guard !audioEngine.isRunning else {
+            print("Audio engine already running")
+            return
+        }
+
+        print("Starting speech recognition...")
+        try? recorde(progressHandler: progressHandler)
+    }
+
+    
     func requestAuthorization() {
         SFSpeechRecognizer.requestAuthorization { status in
             Task { @MainActor in
@@ -27,12 +38,6 @@ final class SpeechRecognizer: NSObject {
                 }
             }
         }
-    }
-
-    func startRecording(progressHandler: @escaping (String) -> Void = {_ in }) {
-        guard !audioEngine.isRunning else { return }
-
-        try? recorde(progressHandler: progressHandler)
     }
 
     func stopRecording() {
@@ -53,7 +58,7 @@ final class SpeechRecognizer: NSObject {
 
         //   try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers) - doesn't work with Speech Synthesizer.
         //        BTW, in iOS 16.3, `.playback` causes crush.
-        try audioSession.setCategory(.playAndRecord, options: .mixWithOthers)
+        try audioSession.setCategory(.record, mode: .default, options: .duckOthers)
 
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         let inputNode = audioEngine.inputNode
