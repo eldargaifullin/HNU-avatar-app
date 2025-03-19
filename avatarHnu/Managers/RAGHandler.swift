@@ -1,112 +1,90 @@
-//
-//  RAGHandler.swift
-//  avatarHnu
-//
-//  Created by Gaifullin, Eldar on 15.12.24.
-//
-import CryptoKit
-import Foundation
+import PDFKit
+import NaturalLanguage
 
-final class RAGHandler {
-    private let pdfDirectory: String = {
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        return documentsPath.appendingPathComponent("hnu_documents").path
-    }()  // Path to the directory with PDF files
-    private let chunkSize = 500            // Chunk size when splitting documents
-    private let chunkOverlap = 100         // Overlap size for continuity
-    private let vectorStore = ChromaDB()   // Placeholder for your vector store
+class RAGHandler {
+    private let chunkSize: Int
+    private let chunkOverlap: Int
+    private var textSplitter: TextSplitter
+    private var vectorStore = VectorStore()
+    private let embeddingModel = NLEmbedding.wordEmbedding(for: .english) // Встроенная модель
     
-    init() {
-        createDirectoryIfNeeded()
-        copySamplePDFToDirectory() // Optional: Copy a sample PDF for testing
+    init(chunkSize: Int, chunkOverlap: Int) {
+        self.chunkSize = chunkSize
+        self.chunkOverlap = chunkOverlap
+        self.textSplitter = TextSplitter(chunkSize: chunkSize, chunkOverlap: chunkOverlap)
     }
-
-    // Ensure the hnu_documents directory exists
-    private func createDirectoryIfNeeded() {
+    
+    // Загрузка PDF и обработка текста
+    func loadPdfsFromDirectory(directoryPath: String) {
         let fileManager = FileManager.default
-        if !fileManager.fileExists(atPath: pdfDirectory) {
-            do {
-                try fileManager.createDirectory(atPath: pdfDirectory, withIntermediateDirectories: true, attributes: nil)
-                print("Directory created at: \(pdfDirectory)")
-            } catch {
-                print("Error creating directory: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    // Copy a sample PDF to the directory for testing purposes
-    private func copySamplePDFToDirectory() {
-        let fileManager = FileManager.default
-        guard let samplePDFPath = Bundle.main.path(forResource: "sample", ofType: "pdf") else {
-            print("Sample PDF not found in bundle.")
-            return
-        }
-        let destinationPath = pdfDirectory + "/sample.pdf"
-        if !fileManager.fileExists(atPath: destinationPath) {
-            do {
-                try fileManager.copyItem(atPath: samplePDFPath, toPath: destinationPath)
-                print("Sample PDF copied to: \(destinationPath)")
-            } catch {
-                print("Error copying sample PDF: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    // Function to load and process PDFs
-    func loadAndProcessPDFs() {
         do {
-            let fileManager = FileManager.default
-            let pdfFiles = try fileManager.contentsOfDirectory(atPath: pdfDirectory).filter { $0.hasSuffix(".pdf") }
-            
-            for pdfFile in pdfFiles {
-                let filePath = "\(pdfDirectory)/\(pdfFile)"
-                let pdfText = try extractTextFromPDF(at: filePath)
-                
-                // Split PDF text into chunks
-                let chunks = splitTextIntoChunks(pdfText, chunkSize: chunkSize, overlap: chunkOverlap)
-                for chunk in chunks {
-                    let chunkHash = hashText(chunk)
-                    if !vectorStore.contains(hash: chunkHash) {
-                        vectorStore.addDocument(chunk, metadata: ["source": pdfFile])
+            let files = try fileManager.contentsOfDirectory(atPath: directoryPath)
+            for filename in files where filename.hasSuffix(".pdf") {
+                let filePath = directoryPath + "/" + filename
+                if let pdfDocument = PDFDocument(url: URL(fileURLWithPath: filePath)) {
+                    for pageIndex in 0..<pdfDocument.pageCount {
+                        if let page = pdfDocument.page(at: pageIndex), let text = page.string {
+                            print("Processing page \(pageIndex + 1) of \(pdfDocument.pageCount)")
+                            let chunks = textSplitter.createDocuments(from: [text])
+                            
+                            for chunk in chunks {
+                                if let vector = generateVector(for: chunk) {
+                                    vectorStore.addDocument(text: chunk, vector: vector)
+                                } else {
+                                    print("Ошибка: не удалось сгенерировать вектор для текста")
+                                }
+                            }
+                        }
                     }
                 }
             }
         } catch {
-            print("Error loading PDFs: \(error.localizedDescription)")
+            print("Ошибка чтения директории: \(error)")
         }
     }
-
-    // Function to retrieve relevant content for a user query
-    func retrieveRelevantContent(for query: String) async -> String {
-        let relevantDocs = vectorStore.similaritySearch(query: query, topK: 3)
-        return relevantDocs.isEmpty ? "No relevant information found." : relevantDocs.joined(separator: "\n")
+    // Поиск контекста
+    func retrieveContext(for query: String) -> String {
+        guard let queryVector = generateVector(for: query) else {
+            return "Ошибка векторизации запроса"
+        }
+        let results = vectorStore.searchSimilar(queryVector: queryVector)
+        return results.map { $0.text }.joined(separator: "\n\n")
     }
-
-    // Helper function to hash text content
-    private func hashText(_ text: String) -> String {
-        let hash = Insecure.MD5.hash(data: text.data(using: .utf8) ?? Data())
-        return hash.map { String(format: "%02hhx", $0) }.joined()
-    }
-
-    // Helper function to split text into chunks
-    private func splitTextIntoChunks(_ text: String, chunkSize: Int, overlap: Int) -> [String] {
-        var chunks = [String]()
-        var startIndex = text.startIndex
-        
-        while startIndex < text.endIndex {
-            let endIndex = text.index(startIndex, offsetBy: chunkSize, limitedBy: text.endIndex) ?? text.endIndex
-            let chunk = String(text[startIndex..<endIndex])
-            chunks.append(chunk)
-            startIndex = text.index(startIndex, offsetBy: chunkSize - overlap, limitedBy: text.endIndex) ?? text.endIndex
+    // Векторизация текста с `NLEmbedding`
+    private func generateVector(for text: String) -> [Float]? {
+        guard let embeddingModel = embeddingModel else {
+            print("Ошибка: Встроенная модель векторизации не найдена")
+            return nil
         }
         
-        return chunks
+        let words = text.split(separator: " ").map { String($0) }
+        var vector = [Double](repeating: 0, count: embeddingModel.dimension) // Используем Double сначала
+        var validWordCount = 0
+        for word in words {
+            if let wordVector = embeddingModel.vector(for: word) {
+                for i in 0..<vector.count {
+                    vector[i] += wordVector[i]
+                }
+                validWordCount += 1
+            }
+        }
+        if validWordCount > 0 {
+            for i in 0..<vector.count {
+                vector[i] /= Double(validWordCount) // Усреднение
+            }
+            return vector.map { Float($0) } // Конвертируем в [Float]
+        } else {
+            return nil
+        }
     }
-
-    // Simulated PDF text extraction (replace with actual implementation)
-    private func extractTextFromPDF(at path: String) throws -> String {
-        // Placeholder: Implement actual PDF text extraction logic
-        return "" // Dummy return value
+    // Обновленный код для добавления документа в векторное хранилище
+    func addDocumentToStore(text: String) {
+      // Векторизация текста
+      if let vector = generateVector(for: text) {
+          // Добавляем в хранилище только если вектор был успешно сгенерирован
+          vectorStore.addDocument(text: text, vector: vector)
+      } else {
+          print("Ошибка: не удалось сгенерировать вектор для текста")
+      }
     }
 }
-

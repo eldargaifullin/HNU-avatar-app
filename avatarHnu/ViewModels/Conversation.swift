@@ -1,4 +1,3 @@
-
 import Foundation
 
 @MainActor
@@ -8,60 +7,46 @@ final class Conversation: ObservableObject {
         let question: String
         let answer: String
     }
-    enum State { case idle, listening, asking }
-    static let initPrompt = "..."
-    static let initAnswer = "(thinking...)"
-    @Published var prompt = ""      // input text
-    @Published var question = ""
-    @Published var answer = ""
-    @Published var talkLogs = [Dialog]()
-    @Published var state: State = .idle
+
+    @Published var prompt = ""
+    @Published private(set) var question = ""
+    @Published private(set) var answer = ""
+    @Published private(set) var talkLogs = [Dialog]()
+    private let chatManager = ChatManager.shared
+    func ask(usingTextInput input: String? = nil) async {
+        guard let input = input, !input.isEmpty else { return }
+            question = input
+            
+            let context = chatManager.ragHandler.retrieveContext(for: question)
+            let finalPrompt = """
+            \(chatManager.systemPrompt)
+            Use the following context:
+            \(context)
+            Question: \(question)
+            """
+            
+            // Вызов реального API ChatGPT
+            answer = await chatManager.chatOpenAI.generateResponse(prompt: finalPrompt)
+            
+            talkLogs.append(Dialog(question: question, answer: answer))
+    }
 
     func startListening() {
-        Synthesizer.shared.stopSpeaking()
-        state = .listening
-        prompt = Self.initPrompt
-        SpeechRecognizer.shared.startRecording(progressHandler: { text in
-            self.prompt = text
-        })
+        SpeechRecognizer.shared.requestAuthorization()
+
+        SpeechRecognizer.shared.startRecording { recognizedText in
+            DispatchQueue.main.async {
+                self.prompt = recognizedText
+            }
+        }
+        print("Listening started")
     }
+
 
     func stopListening() {
-        state = .idle
         SpeechRecognizer.shared.stopRecording()
+        print("Listening stopped")
     }
 
-    func ask(usingTextInput input: String? = nil) async {
-        state = .asking
-        SpeechRecognizer.shared.stopRecording()
-
-        // Use text input if provided; otherwise, use the voice input
-        if let input = input, !input.isEmpty {
-            question = input
-        } else if prompt != Self.initPrompt {
-            question = prompt
-        } else {
-            return // Exit if neither text nor voice input is available
-        }
-
-        answer = Self.initAnswer
-        prompt = Self.initPrompt
-
-        // Make the API call
-        answer = await ChatManager.shared.sendText(question)
-        talkLogs.append(Dialog(question: question, answer: answer))
-
-        state = .idle
-    }
-
-    func speak() {
-        guard answer != Self.initAnswer else { return }
-
-        if Synthesizer.shared.isSpeaking {
-            Synthesizer.shared.stopSpeaking()
-        } else {
-            Synthesizer.shared.speak(answer)
-        }
-    }
 }
 

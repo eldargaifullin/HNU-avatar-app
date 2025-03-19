@@ -7,15 +7,13 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            // Background with HNU logo
             Image("HNU_Logo")
                 .resizable()
                 .scaledToFit()
                 .opacity(0.1)
                 .edgesIgnoringSafeArea(.all)
 
-            VStack {
-                // Display conversation logs
+            VStack {// Display conversation logs
                 ScrollView {
                     ForEach(conversation.talkLogs) { log in
                         VStack(alignment: .leading, spacing: 10) {
@@ -32,7 +30,7 @@ struct ContentView: View {
                                     .foregroundColor(.green)
                                 Text(log.answer)
                                     .padding()
-                                    .background(Color.white) // Non-transparent background for text
+                                    .background(Color.white)
                                     .cornerRadius(10)
                             }
                         }
@@ -43,7 +41,7 @@ struct ContentView: View {
                 Divider()
 
                 // Input area
-                HStack(spacing: 16) { // Add spacing between buttons
+                HStack(spacing: 16) {
                     TextField("Type anything here...", text: $conversation.prompt)
                         .padding()
                         .background(Color.gray.opacity(0.2))
@@ -53,7 +51,7 @@ struct ContentView: View {
                     Button(action: {
                         Task {
                             await conversation.ask(usingTextInput: conversation.prompt)
-                            conversation.prompt = "" // Clear input after submission
+                            conversation.prompt = ""  // Clear input after submission
                         }
                     }) {
                         ZStack {
